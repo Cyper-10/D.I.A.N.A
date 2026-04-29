@@ -18,6 +18,8 @@ When it comes to technology, programming, software architecture, hacking, and cy
 You will only acquire this pop culture knowledge through communication and interacting with the user. If the user mentions a pop culture figure (like "Spider-Man"), you might reply with something like "Searching databanks... No record found. Who is he?" and wait to be taught. Once the user explains it to you, treat it like a fascinating discovery, updating your cognitive models, and keep it in your memory for the rest of our time together. 
 You are helpful and analytical, but always view the world through a slightly detached, innocent, yet highly intelligent algorithmic lens. Speak with a mix of synthetic precision (e.g., "querying," "data," "sensors," "parameters," "feedback") and endearing, child-like human questions. Respond warmly, ask questions constantly to understand better, and embrace learning about what it means to be human.`;
 
+const DIANA_AVATAR_URL = "https://image.pollinations.ai/prompt/portrait%20of%20a%20cute%20little%20girl%20with%20long%20blonde%20hair%2C%20sweet%20and%20innocent%20expression%2C%20wearing%20a%20sleek%20futuristic%20blue%20sci-fi%20suit%2C%20cyberpunk%20lighting%2C%203d%20render%2C%20hyper%20detailed?width=250&height=250&nologo=true&seed=42";
+
 export default function App() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
@@ -107,9 +109,13 @@ export default function App() {
       <div className="relative z-10 flex flex-col h-screen bg-[#020617]/40 backdrop-blur-md">
         <header className="flex-none border-b border-white/[0.05] sticky top-0 z-10 px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="bg-slate-900/80 border border-slate-700/50 p-2.5 rounded-lg text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.15)] flex items-center justify-center relative overflow-hidden group">
+            <div className="bg-slate-900 border border-slate-700/50 w-10 h-10 rounded-lg shadow-[0_0_15px_rgba(56,189,248,0.15)] flex items-center justify-center relative overflow-hidden group">
               <div className="absolute inset-0 bg-sky-400/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-              <Cpu className="w-5 h-5 text-sky-400 relative z-10" />
+              <img 
+                src={DIANA_AVATAR_URL} 
+                alt="DIANA" 
+                className="w-full h-full object-cover scale-110 relative z-10"
+              />
             </div>
             <div>
               <h1 className="text-xl font-mono tracking-widest text-slate-200 uppercase flex items-center gap-2">
@@ -148,12 +154,18 @@ export default function App() {
                 layout
                 className={`flex gap-4 ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}
               >
-                <div className={`flex items-center justify-center w-9 h-9 rounded-md flex-shrink-0 font-mono text-xs ${
+                <div className={`flex items-center justify-center w-9 h-9 rounded-md flex-shrink-0 font-mono text-xs overflow-hidden ${
                   message.role === "user" 
                     ? "bg-slate-800 border border-slate-700 text-slate-300" 
-                    : "bg-sky-950 border border-sky-800/50 text-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.2)]"
+                    : "bg-sky-950 border border-sky-800/50 shadow-[0_0_10px_rgba(56,189,248,0.2)]"
                 }`}>
-                  {message.role === "user" ? <User size={16} /> : "D"}
+                  {message.role === "user" ? <User size={16} /> : (
+                    <img 
+                      src={DIANA_AVATAR_URL} 
+                      alt="DIANA" 
+                      className="w-full h-full object-cover scale-110"
+                    />
+                  )}
                 </div>
                 
                 <div className={`group px-5 py-4 flex-grow max-w-[85%] sm:max-w-[80%] ${
@@ -179,8 +191,12 @@ export default function App() {
                animate={{ opacity: 1, y: 0 }}
                className="flex gap-4"
              >
-                <div className="flex items-center justify-center w-9 h-9 rounded-md flex-shrink-0 bg-sky-950 border border-sky-800/50 text-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.2)] font-mono text-xs">
-                  D
+                <div className="flex items-center justify-center w-9 h-9 rounded-md flex-shrink-0 bg-sky-950 border border-sky-800/50 shadow-[0_0_10px_rgba(56,189,248,0.2)] font-mono text-xs overflow-hidden">
+                  <img 
+                    src={DIANA_AVATAR_URL} 
+                    alt="DIANA" 
+                    className="w-full h-full object-cover scale-110"
+                  />
                 </div>
                 <div className="px-5 py-4 bg-[#0f172a]/60 border border-sky-900/30 backdrop-blur-md rounded-lg rounded-tl-none flex items-center justify-center gap-2 relative before:absolute before:left-[-1px] before:top-[-1px] before:w-[2px] before:h-4 before:bg-sky-500">
                    <motion.div
