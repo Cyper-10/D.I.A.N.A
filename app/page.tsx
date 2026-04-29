@@ -256,6 +256,30 @@ export default function App() {
           </div>
           
           <div className="hidden md:flex items-center gap-4 text-xs font-mono text-slate-500">
+            <button 
+              onClick={() => {
+                localStorage.removeItem('diana_chat_history');
+                setMessages([{ id: Date.now().toString(), role: "model", text: "Memory wiped. System online. I am DIANA. Who are you?" }]);
+                setError(null);
+                if (chatRef.current) {
+                  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+                  if (apiKey) {
+                    const ai = new GoogleGenAI({ apiKey });
+                    chatRef.current = ai.chats.create({
+                      model: "gemini-2.5-flash",
+                      config: {
+                        temperature: 0.7,
+                        systemInstruction: SYSTEM_INSTRUCTION
+                      }
+                    });
+                  }
+                }
+              }}
+              className="flex items-center gap-1.5 text-sky-500/70 hover:text-sky-400 transition-colors"
+              title="Reset Neural Link (Clear Cache)"
+            >
+              <Cpu className="w-3 h-3" /> RESET_LINK
+            </button>
             <div className="flex items-center gap-1.5"><Database className="w-3 h-3" /> SYS_MEM: NORMAL</div>
             <div className="flex items-center gap-1.5"><Network className="w-3 h-3" /> NEURAL_LINK: ACTIVE</div>
           </div>
