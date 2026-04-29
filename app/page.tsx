@@ -184,10 +184,37 @@ export default function App() {
       
     } catch (err: any) {
       console.error(err);
+      
+      let errorMessage = err.message || "Unknown error";
+      if (typeof errorMessage === 'string' && errorMessage.includes('503')) {
+         errorMessage = "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.";
+      } else if (typeof errorMessage === 'string') {
+        try {
+            const match = errorMessage.match(/\{[\s\S]*\}/);
+            if (match) {
+                const parsedError = JSON.parse(match[0]);
+                if (parsedError?.error?.message) {
+                    try {
+                        const nestedParsed = JSON.parse(parsedError.error.message);
+                        if (nestedParsed?.error?.message) {
+                             errorMessage = nestedParsed.error.message;
+                        } else {
+                             errorMessage = parsedError.error.message;
+                        }
+                    } catch(e) {
+                        errorMessage = parsedError.error.message;
+                    }
+                }
+            }
+        } catch(e) {
+            // Keep original message if parsing fails
+        }
+      }
+
       setMessages((prev) => [...prev, { 
         id: Date.now().toString(), 
         role: "model", 
-        text: `Signal lost... I encountered a system error: ${err.message || "Unknown error"}. Can you try again?` 
+        text: `Signal lost... I encountered a system error: ${errorMessage}. Can you try again?` 
       }]);
     } finally {
       setIsTyping(false);
