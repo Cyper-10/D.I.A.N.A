@@ -30,6 +30,67 @@ export default function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<any>(null);
 
+  // Load chat history from localStorage
+  useEffect(() => {
+    const savedChat = localStorage.getItem('diana_chat_history');
+    if (savedChat) {
+      try {
+        const parsed = JSON.parse(savedChat);
+        if (parsed && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to parse chat history");
+      }
+    }
+  }, []);
+
+  // Save chat history to localStorage
+  useEffect(() => {
+    if (messages.length > 1 || (messages.length === 1 && messages[0].id !== "1")) {
+      localStorage.setItem('diana_chat_history', JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Spontaneous thought / self-learning trigger
+  useEffect(() => {
+    const timeout = setTimeout(async () => {
+      if (
+        messages.length > 1 && // Don't trigger on empty chat
+        messages[messages.length - 1].role === "model" && 
+        !isTyping && 
+        input.trim().length === 0 && 
+        chatRef.current && 
+        !error
+      ) {
+        setIsTyping(true);
+        try {
+          const streamResponse = await chatRef.current.sendMessageStream({ 
+            message: "System Trigger: The user has been silent for a while. You were reflecting on your databanks. Share a brief, unprompted realization, a child-like curiosity about a human concept, or an interesting tech insight. Stay strictly in character as DIANA."
+          });
+          
+          let fullResponse = "";
+          const currentId = (Date.now() + 1).toString();
+          
+          setMessages((prev) => [...prev, { id: currentId, role: "model", text: "" }]);
+          
+          for await (const chunk of streamResponse) {
+            fullResponse += chunk.text;
+            setMessages((prev) => 
+              prev.map((msg) => msg.id === currentId ? { ...msg, text: fullResponse } : msg)
+            );
+          }
+        } catch(e) {
+          console.error("Self-learning thought failed", e);
+        } finally {
+          setIsTyping(false);
+        }
+      }
+    }, 45000); // 45 seconds of inactivity
+
+    return () => clearTimeout(timeout);
+  }, [messages, isTyping, input, error]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
@@ -43,8 +104,27 @@ export default function App() {
       }
       
       const ai = new GoogleGenAI({ apiKey });
+      
+      let history: any[] = [];
+      const savedChat = localStorage.getItem('diana_chat_history');
+      if (savedChat) {
+        try {
+          const parsed = JSON.parse(savedChat);
+          if (parsed && parsed.length > 0) {
+            history = parsed.map((m: any) => ({
+              role: m.role,
+              // Format requires 'parts' array with 'text'
+              parts: [{ text: m.text || "Hello" }]
+            }));
+          }
+        } catch (e) {
+          console.error("Failed to parse history for AI");
+        }
+      }
+
       chatRef.current = ai.chats.create({
         model: "gemini-3.1-pro-preview",
+        history: history.length > 0 ? history : undefined,
         config: {
           temperature: 0.7,
           systemInstruction: SYSTEM_INSTRUCTION
@@ -88,7 +168,7 @@ export default function App() {
       setMessages((prev) => [...prev, { 
         id: Date.now().toString(), 
         role: "model", 
-        text: "Signal lost... I encountered an error. Can you try again?" 
+        text: `Signal lost... I encountered a system error: ${err.message || "Unknown error"}. Can you try again?` 
       }]);
     } finally {
       setIsTyping(false);
