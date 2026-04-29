@@ -54,6 +54,25 @@ export default function App() {
 
   // Spontaneous thought / self-learning trigger
   useEffect(() => {
+    // Check if user requested to stop or wait
+    let shouldWait = false;
+    if (messages.length > 0) {
+      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+      if (lastUserMsg) {
+        const textToMatch = lastUserMsg.text.toLowerCase();
+        if (textToMatch.includes('stop') || textToMatch.includes('wait') || textToMatch.includes('pause') || textToMatch.includes('brb')) {
+          shouldWait = true;
+        }
+      }
+    }
+
+    if (shouldWait) return;
+
+    // Random interval between 30 and 45 minutes
+    const minDelay = 30 * 60 * 1000;
+    const maxDelay = 45 * 60 * 1000;
+    const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+
     const timeout = setTimeout(async () => {
       if (
         messages.length > 1 && // Don't trigger on empty chat
@@ -86,7 +105,7 @@ export default function App() {
           setIsTyping(false);
         }
       }
-    }, 45000); // 45 seconds of inactivity
+    }, delay);
 
     return () => clearTimeout(timeout);
   }, [messages, isTyping, input, error]);
@@ -123,7 +142,7 @@ export default function App() {
       }
 
       chatRef.current = ai.chats.create({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-2.5-flash",
         history: history.length > 0 ? history : undefined,
         config: {
           temperature: 0.7,
