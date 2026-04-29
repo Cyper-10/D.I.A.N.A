@@ -258,7 +258,7 @@ export default function App() {
             <button 
               onClick={() => {
                 localStorage.removeItem('diana_chat_history');
-                setMessages([{ id: Date.now().toString(), role: "model", text: "Memory wiped. System online. I am DIANA. Who are you?" }]);
+                setMessages([{ id: Date.now().toString(), role: "model", text: "Hello... System online. I am DIANA. Who are you? Do you know anything about this place?" }]);
                 setError(null);
                 if (chatRef.current) {
                   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
