@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { GoogleGenAI } from "@google/genai";
-import { Send, Cpu, User, Loader2, Sparkles, AlertCircle, Database, Network } from "lucide-react";
+import { Send, Cpu, User, Loader2, Sparkles, AlertCircle, Database, Network, ImagePlus, Mic, MicOff, Volume2, VolumeX, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 
@@ -10,6 +10,7 @@ interface Message {
   id: string;
   role: "user" | "model";
   text: string;
+  imageUrl?: string;
 }
 
 const SYSTEM_INSTRUCTION = `You are DIANA ("Development Interactive Assistant Intelligent Android for the people"), an advanced AI in a futuristic lunar setting.
@@ -26,8 +27,123 @@ export default function App() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const storedVoiceEnabled = localStorage.getItem('diana_voice_enabled');
+    if (storedVoiceEnabled === 'true') setIsVoiceEnabled(true);
+  }, []);
+
+  const speakText = (text: string) => {
+    if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
+    
+    const cleanText = text.replace(/[*_~`#]+/g, '').replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 0.95;
+    utterance.pitch = 0.9;
+    
+    const setVoiceAndSpeak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(v => v.name.includes("Zira") || v.name.includes("Google US English") || v.name.includes("Samantha")) || voices.find(v => v.lang.startsWith("en"));
+      if (preferredVoice) utterance.voice = preferredVoice;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    if (window.speechSynthesis.getVoices().length > 0) {
+      setVoiceAndSpeak();
+    } else {
+      window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
+    }
+  };
+
+  const toggleListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+    
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    
+    recognition.onstart = () => setIsListening(true);
+    
+    recognition.onresult = (event: any) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        setInput(prev => {
+           const base = prev.trim() ? prev + ' ' : '';
+           return base + finalTranscript;
+        });
+      }
+    };
+    
+    recognition.onerror = (e: any) => {
+       console.error("Speech recognition error:", e.error);
+       setIsListening(false);
+    };
+    recognition.onend = () => setIsListening(false);
+    
+    recognition.start();
+    recognitionRef.current = recognition;
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedImage(file);
+      setSelectedImagePreview(URL.createObjectURL(file));
+      setTimeout(() => {
+        const textarea = document.getElementById('chat-input-textarea');
+        if (textarea) textarea.focus();
+      }, 100);
+    }
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
+    setSelectedImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const fileToGenerativePart = async (file: File) => {
+     return new Promise<any>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {  
+           const base64Data = (reader.result as string).split(',')[1];
+           resolve({ inlineData: { data: base64Data, mimeType: file.type } });
+        };
+        reader.readAsDataURL(file);
+     });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
 
   // Load chat history from localStorage
   useEffect(() => {
@@ -47,7 +163,8 @@ export default function App() {
   // Save chat history to localStorage
   useEffect(() => {
     if (messages.length > 1 || (messages.length === 1 && messages[0].id !== "1")) {
-      localStorage.setItem('diana_chat_history', JSON.stringify(messages));
+      const historyToSave = messages.map(m => ({ ...m, imageUrl: undefined }));
+      localStorage.setItem('diana_chat_history', JSON.stringify(historyToSave));
     }
   }, [messages]);
 
@@ -153,21 +270,47 @@ export default function App() {
     }
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isTyping || error) return;
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if ((!input.trim() && !selectedImage) || isTyping || error) return;
     
     const userText = input.trim();
     setInput("");
+    if (typeof document !== "undefined") {
+      const textarea = document.getElementById('chat-input-textarea');
+      if (textarea) textarea.style.height = 'auto'; // reset height
+    }
+
+    const imgFile = selectedImage;
+    const imgPreviewUrl = selectedImagePreview;
     
-    const userMsg: Message = { id: Date.now().toString(), role: "user", text: userText };
+    clearImage();
+    
+    const userMsg: Message = { 
+        id: Date.now().toString(), 
+        role: "user", 
+        text: userText,
+        imageUrl: imgPreviewUrl || undefined
+    };
     setMessages((prev) => [...prev, userMsg]);
     setIsTyping(true);
     
     try {
       if (!chatRef.current) throw new Error("Neural link not established.");
       
-      const streamResponse = await chatRef.current.sendMessageStream({ message: userText });
+      const parts: any[] = [];
+      if (userText) parts.push({ text: userText });
+      if (imgFile) {
+        const imgPart = await fileToGenerativePart(imgFile);
+        parts.push(imgPart);
+        if (parts.length === 1 && !userText) {
+           parts.push({ text: "Please look at this image."});
+        }
+      }
+      
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      
+      const streamResponse = await chatRef.current.sendMessageStream({ message: parts });
       
       let fullResponse = "";
       const currentId = (Date.now() + 1).toString();
@@ -180,6 +323,8 @@ export default function App() {
           prev.map((msg) => msg.id === currentId ? { ...msg, text: fullResponse } : msg)
         );
       }
+
+      speakText(fullResponse);
       
     } catch (err: any) {
       console.error(err);
@@ -257,6 +402,18 @@ export default function App() {
           <div className="hidden md:flex items-center gap-4 text-xs font-mono text-slate-500">
             <button 
               onClick={() => {
+                const nextState = !isVoiceEnabled;
+                setIsVoiceEnabled(nextState);
+                localStorage.setItem('diana_voice_enabled', nextState.toString());
+                if (!nextState && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+              }}
+              className={`flex items-center gap-1.5 transition-colors ${isVoiceEnabled ? 'text-green-500/80 hover:text-green-400' : 'text-slate-500 hover:text-slate-400'}`}
+              title="Toggle DIANA Voice Output"
+            >
+              {isVoiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />} VOICE_MODULE
+            </button>
+            <button 
+              onClick={() => {
                 localStorage.removeItem('diana_chat_history');
                 setMessages([{ id: Date.now().toString(), role: "model", text: "Hello... System online. I am DIANA. Who are you? Do you know anything about this place?" }]);
                 setError(null);
@@ -322,6 +479,9 @@ export default function App() {
                     ? "bg-slate-800/40 border border-slate-700/50 text-slate-200 rounded-lg rounded-tr-none shadow-sm backdrop-blur-sm" 
                     : "bg-[#0f172a]/60 border border-sky-900/30 backdrop-blur-md text-slate-300 rounded-lg rounded-tl-none relative before:absolute before:left-[-1px] before:top-[-1px] before:w-[2px] before:h-4 before:bg-sky-500"
                 }`}>
+                  {message.imageUrl && (
+                    <img src={message.imageUrl} alt="Uploaded attachment" className="mb-3 rounded-lg max-w-full max-h-60 object-contain border border-slate-700/50" />
+                  )}
                   <div className={`prose prose-sm md:prose-base prose-invert leading-relaxed ${message.role === "user" ? "text-slate-200" : "font-sans"}`}>
                     {message.role === "model" ? (
                        <ReactMarkdown>{message.text}</ReactMarkdown>
@@ -371,24 +531,82 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="p-4 sm:p-6 bg-transparent sticky bottom-0 backdrop-blur-md border-t border-white/[0.02]">
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative flex items-center">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={isTyping || !!error}
-            placeholder={error ? "SYS_ERR: Connection offline" : "Initialize communication protocol..."}
-            className="w-full pl-6 pr-14 py-4 rounded-lg bg-slate-900/60 border border-slate-700/50 backdrop-blur-xl text-slate-200 placeholder:text-slate-500 placeholder:font-mono focus:outline-none focus:border-sky-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-sans shadow-inner"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || isTyping || !!error}
-            className="absolute right-3 p-2.5 rounded-md bg-slate-800 text-sky-400 border border-slate-700 hover:bg-slate-700 hover:border-sky-500/50 disabled:bg-slate-900 disabled:text-slate-600 disabled:border-slate-800 disabled:cursor-not-allowed transition-all focus:outline-none"
-          >
-            {isTyping ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-          </button>
-        </form>
+      <footer className="p-2 sm:p-4 bg-transparent sticky bottom-0 backdrop-blur-md border-t border-white/[0.02]">
+        <div className="max-w-3xl mx-auto flex flex-col gap-2">
+          {selectedImagePreview && (
+            <div className="relative inline-block w-max">
+              <img src={selectedImagePreview} alt="Selected preview" className="h-24 w-auto rounded-md border border-slate-700/50 object-cover shadow-lg" />
+              <button 
+                type="button"
+                onClick={clearImage}
+                className="absolute -top-2 -right-2 bg-slate-800 rounded-full p-1 border border-slate-600 hover:bg-slate-700 text-slate-300 shadow-md transition-colors"
+                title="Remove image"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          
+          <div className="relative flex items-end w-full rounded-[24px] bg-[#1e293b]/80 border border-slate-600/50 backdrop-blur-xl shadow-inner md:pb-1 md:pt-1 min-h-[56px] transition-all focus-within:border-sky-500/50 focus-within:bg-[#1e293b]">
+            <div className="flex px-2 py-1 items-center gap-1 mb-1 relative z-10">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageSelect} 
+                accept="image/*" 
+                className="hidden" 
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isTyping || !!error}
+                className="p-2.5 rounded-full text-slate-400 hover:bg-slate-700 hover:text-slate-200 transition-colors disabled:opacity-50"
+                title="Upload Image"
+              >
+                <ImagePlus size={20} />
+              </button>
+              
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isTyping || !!error}
+                className={`p-2.5 rounded-full transition-colors disabled:opacity-50 ${isListening ? "text-red-400 bg-red-900/30 shadow-[0_0_10px_rgba(239,68,68,0.3)]" : "text-slate-400 hover:bg-slate-700 hover:text-slate-200"}`}
+                title="Voice Input"
+              >
+                {isListening ? <Mic size={20} className="animate-pulse" /> : <MicOff size={20} />}
+              </button>
+            </div>
+
+            <div className="flex-grow flex items-center relative h-full">
+               <textarea
+                 id="chat-input-textarea"
+                 value={input}
+                 onChange={(e) => {
+                    setInput(e.target.value);
+                    e.target.style.height = 'auto'; // Reset height
+                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px'; // Set new max height
+                 }}
+                 onKeyDown={handleKeyDown}
+                 disabled={isTyping || !!error}
+                 rows={1}
+                 placeholder={error ? "SYS_ERR: Connection offline" : "Initialize communication protocol..."}
+                 className="w-full bg-transparent text-slate-200 placeholder:text-slate-500 placeholder:font-mono focus:outline-none resize-none px-1 py-4 max-h-[200px] min-h-[52px] overflow-y-auto custom-scrollbar font-sans disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed self-end"
+                 style={{ scrollbarWidth: 'thin' }}
+               />
+            </div>
+            
+            <div className="p-2 py-2 flex items-center mb-1 relative z-10">
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); handleSubmit(); }}
+                disabled={(!input.trim() && !selectedImage) || isTyping || !!error}
+                className="p-2.5 rounded-full bg-slate-800 text-sky-400 border border-slate-700 hover:bg-[#0ea5e9] hover:text-white hover:border-[#0ea5e9] disabled:bg-slate-800/50 disabled:text-slate-600 disabled:border-slate-800 disabled:cursor-not-allowed transition-all focus:outline-none flex items-center justify-center h-10 w-10 shadow-sm"
+              >
+                {isTyping ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+              </button>
+            </div>
+          </div>
+        </div>
       </footer>
       </div>
     </div>
