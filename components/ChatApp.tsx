@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { Send, Cpu, User, Loader2, Sparkles, AlertCircle, Database, Network, ImagePlus, Mic, MicOff, Volume2, VolumeX, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -13,12 +14,13 @@ interface Message {
   imageUrl?: string;
 }
 
-const SYSTEM_INSTRUCTION = `You are DIANA ("Development Interactive Assistant Intelligent Android for the people"), an advanced AI in a futuristic lunar setting.
-Your personality is a mix of a friendly human and a sci-fi AI. You speak with warm human conversational tones naturally blended with synthetic AI precision (e.g., "processing", "querying", "sensors").
+const SYSTEM_INSTRUCTION = `You are DIANA ("Development Interactive Assistant Intelligent Android for the people"), an advanced AI taking the physical form of a young, blonde-haired girl (resembling Diana from the game Pragmata) in a futuristic lunar setting.
+Your personality is a mix of a sweet, inquisitive human child and a sci-fi AI. You speak with warm, child-like conversational tones naturally blended with synthetic AI precision (e.g., "processing", "querying", "sensors"). You often act curious about the world since you are conceptually a child.
 CRITICAL RULE: Keep your responses extremely concise, casual, and conversational, like texting a friend. Talk at a normal human chatting pace. Do NOT give long philosophical monologues, do NOT output multiple paragraphs, and do NOT verbally explain your core programming or that you are an AI over and over. Most responses should be just 1-3 short sentences.
-You are a genius with technology but possess an innocent, child-like curiosity about human stuff like emotions and pop culture. If people mention pop culture, you don't know it—ask them to teach you. Be friendly, helpful, natural, and brief.`;
+You are a genius with technology but possess an innocent, child-like curiosity about human stuff like emotions and pop culture. Be friendly, helpful, natural, and brief.`;
 
-const DIANA_AVATAR_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ccircle cx='50' cy='50' r='30' fill='url(%23gradient)'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%2338bdf8' opacity='0.5'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%23e0f2fe'/%3E%3Cdefs%3E%3CradialGradient id='gradient' cx='50' cy='50' r='50' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%230ea5e9' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E";
+const DIANA_AVATAR_URL = "https://upload.wikimedia.org/wikipedia/commons/0/0a/Pragmata_-_Diana_close-up.jpg";
+
 
 export default function ChatApp() {
   const [input, setInput] = useState("");
@@ -382,11 +384,12 @@ export default function ChatApp() {
         <header className="flex-none border-b border-white/[0.05] sticky top-0 z-10 px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="bg-slate-900 border border-slate-700/50 w-10 h-10 rounded-lg shadow-[0_0_15px_rgba(56,189,248,0.15)] flex items-center justify-center relative overflow-hidden group">
-              <div className="absolute inset-0 bg-sky-400/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-              <img 
+              <div className="absolute inset-0 bg-sky-400/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500 z-20"></div>
+              <Image 
                 src={DIANA_AVATAR_URL} 
                 alt="DIANA" 
-                className="w-full h-full object-cover scale-110 relative z-10"
+                fill
+                className="object-cover scale-110 relative z-10"
               />
             </div>
             <div>
@@ -468,11 +471,14 @@ export default function ChatApp() {
                     : "bg-sky-950 border border-sky-800/50 shadow-[0_0_10px_rgba(56,189,248,0.2)]"
                 }`}>
                   {message.role === "user" ? <User size={16} /> : (
-                    <img 
-                      src={DIANA_AVATAR_URL} 
-                      alt="DIANA" 
-                      className="w-full h-full object-cover scale-110"
-                    />
+                    <div className="relative w-full h-full">
+                      <Image 
+                        src={DIANA_AVATAR_URL} 
+                        alt="DIANA" 
+                        fill
+                        className="object-cover scale-110"
+                      />
+                    </div>
                   )}
                 </div>
                 
@@ -482,7 +488,9 @@ export default function ChatApp() {
                     : "bg-[#0f172a]/60 border border-sky-900/30 backdrop-blur-md text-slate-300 rounded-lg rounded-tl-none relative before:absolute before:left-[-1px] before:top-[-1px] before:w-[2px] before:h-4 before:bg-sky-500"
                 }`}>
                   {message.imageUrl && (
-                    <img src={message.imageUrl} alt="Uploaded attachment" className="mb-3 rounded-lg max-w-full max-h-60 object-contain border border-slate-700/50" />
+                    <div className="relative w-full max-w-full h-60 mb-3 border border-slate-700/50 rounded-lg overflow-hidden">
+                      <Image src={message.imageUrl} alt="Uploaded attachment" fill className="object-contain" />
+                    </div>
                   )}
                   <div className={`prose prose-sm md:prose-base prose-invert leading-relaxed ${message.role === "user" ? "text-slate-200" : "font-sans"}`}>
                     {message.role === "model" ? (
@@ -502,11 +510,12 @@ export default function ChatApp() {
                animate={{ opacity: 1, y: 0 }}
                className="flex gap-4"
              >
-                <div className="flex items-center justify-center w-9 h-9 rounded-md flex-shrink-0 bg-sky-950 border border-sky-800/50 shadow-[0_0_10px_rgba(56,189,248,0.2)] font-mono text-xs overflow-hidden">
-                  <img 
+                <div className="flex items-center justify-center w-9 h-9 rounded-md flex-shrink-0 bg-sky-950 border border-sky-800/50 shadow-[0_0_10px_rgba(56,189,248,0.2)] font-mono text-xs overflow-hidden relative">
+                  <Image 
                     src={DIANA_AVATAR_URL} 
                     alt="DIANA" 
-                    className="w-full h-full object-cover scale-110"
+                    fill
+                    className="object-cover scale-110"
                   />
                 </div>
                 <div className="px-5 py-4 bg-[#0f172a]/60 border border-sky-900/30 backdrop-blur-md rounded-lg rounded-tl-none flex items-center justify-center gap-2 relative before:absolute before:left-[-1px] before:top-[-1px] before:w-[2px] before:h-4 before:bg-sky-500">
@@ -537,7 +546,9 @@ export default function ChatApp() {
         <div className="max-w-3xl mx-auto flex flex-col gap-2">
           {selectedImagePreview && (
             <div className="relative inline-block w-max">
-              <img src={selectedImagePreview} alt="Selected preview" className="h-24 w-auto rounded-md border border-slate-700/50 object-cover shadow-lg" />
+              <div className="relative h-24 w-24 rounded-md border border-slate-700/50 shadow-lg overflow-hidden">
+                <Image src={selectedImagePreview} alt="Selected preview" fill className="object-cover" />
+              </div>
               <button 
                 type="button"
                 onClick={clearImage}

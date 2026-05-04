@@ -1,11 +1,7 @@
-import Link from 'next/link'
- 
 export default function NotFound() {
   return (
-    <div>
-      <h2>Not Found</h2>
-      <p>Could not find requested resource</p>
-      <Link href="/">Return Home</Link>
+    <div className="flex h-screen items-center justify-center bg-[#0a0a0c] text-sky-400 font-mono text-xl">
+      <p>404 - Signal Lost</p>
     </div>
-  )
+  );
 }
