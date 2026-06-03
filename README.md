@@ -1,6 +1,13 @@
 # DIANA - Interactive UI
 
-Development Interactive Assistant Intelligent Android for the people.
+**D**evelopment **I**nteractive **A**ssistant I**N**telligent **A**ndroid for the people.
+
+DIANA is an AI-powered conversational web assistant designed to provide contextual travel, dining, and shopping recommendations specifically tailored for regional tourists visiting Iloilo City. 
+
+### Key Features
+- **Intelligent Recommendations:** Provides contextual travel, dining, and shopping suggestions for tourists visiting Iloilo City.
+- **Smart Mapping Engine:** Features an advanced execution engine that extracts multi-destination constraints to programmatically generate chronological route itineraries via Google Maps from a single natural language prompt.
+- **Robust Architecture:** Utilizes Supabase for real-time relational database persistence and is hosted natively via Vercel to maximize global delivery speeds.
 
 ## Getting Started
 
