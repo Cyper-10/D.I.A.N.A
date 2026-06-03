@@ -1,7 +1,8 @@
 export default function NotFound() {
   return (
-    <div className="flex h-screen items-center justify-center bg-[#0a0a0c] text-sky-400 font-mono text-xl">
-      <p>404 - Signal Lost</p>
+    <div className="flex flex-col items-center justify-center min-h-screen text-white bg-black">
+      <h2 className="text-2xl font-bold">404 - Not Found</h2>
+      <p>Could not find requested resource</p>
     </div>
-  );
+  )
 }
