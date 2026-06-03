@@ -2,12 +2,12 @@
 
 **D**evelopment **I**nteractive **A**ssistant I**N**telligent **A**ndroid for the people.
 
-DIANA is an AI-powered conversational web assistant designed to provide contextual travel, dining, and shopping recommendations specifically tailored for regional tourists visiting Iloilo City. 
+DIANA is an AI-powered conversational web application featuring a unique futuristic android persona. It blends human-like curiosity with sci-fi AI precision to create engaging, multimodal user experiences.
 
 ### Key Features
-- **Intelligent Recommendations:** Provides contextual travel, dining, and shopping suggestions for tourists visiting Iloilo City.
-- **Smart Mapping Engine:** Features an advanced execution engine that extracts multi-destination constraints to programmatically generate chronological route itineraries via Google Maps from a single natural language prompt.
-- **Robust Architecture:** Utilizes Supabase for real-time relational database persistence and is hosted natively via Vercel to maximize global delivery speeds.
+- **Conversational AI Persona:** Developed an AI-powered conversational web assistant featuring DIANA, a highly customized intelligent android persona driven by advanced prompt engineering to simulate child-like curiosity and sci-fi synthetic realism.
+- **Multimodal & Voice Integration:** Integrated real-time speech recognition, text-to-speech voice synthesis, and image processing capabilities via the Gemini 2.5 Flash model to enable rich, hands-free, and context-aware interactions.
+- **Local State & Immersive UI:** Utilized browser local storage for seamless chat history persistence and engineered a highly responsive, atmospheric sci-fi visual interface using Next.js, React variants, and Tailwind CSS.
 
 ## Getting Started
 
